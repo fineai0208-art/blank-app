@@ -1,100 +1,91 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import time
 
-# 1. 페이지 설정 및 다크 테마 보안 스타일링
-st.set_page_config(page_title="MSF High-Risk Monitor", page_icon="🏥", layout="wide")
+# 1. 페이지 설정 (블랙 & 레드 보안 컨셉)
+st.set_page_config(page_title="MSF Strategic Monitor", page_icon="🚨", layout="wide")
 
 st.markdown("""
     <style>
-    .main { background-color: #050505; color: #00ff41; font-family: 'Courier New', monospace; }
-    .stMetric { background-color: #111; border: 1px solid #ff4b4b; padding: 10px; border-radius: 5px; }
-    h1, h2, h3 { color: #ff4b4b !important; }
-    .report-box { border: 1px solid #00ff41; padding: 15px; border-radius: 10px; background-color: #111; }
+    .main { background-color: #050505; color: #e0e0e0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    h1 { color: #ff4b4b !important; font-size: 45px !important; text-shadow: 2px 2px #000; }
+    h2, h3 { color: #ff4b4b !important; }
+    .stSelectbox label { font-size: 20px !important; color: #00ff41 !important; }
+    .report-card { border: 2px solid #ff4b4b; padding: 25px; border-radius: 15px; background-color: #111; line-height: 1.6; }
+    .stat-text { font-size: 18px !important; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🏥 MSF High-Risk Areas 2026 : Tactical Monitor")
-st.write("전염병·위험요소·사망 통계를 함께 본 2025-2026 인도주의 핫스팟 [cite: 1]")
+st.title("🚨 MSF Tactical Crisis Monitor 2026")
+st.write("2025-2026 인도주의 위기 지역: 전염병·치안·사망 복합 데이터 분석")
 
-# 2. 핵심 데이터 구성
-# 수단, DR콩고, 남수단, 가자지구, 아이티 데이터 통합 [cite: 1, 3, 4, 5, 6, 7]
-msf_data = {
-    "수단": {
-        "lat": 12.86, "lon": 30.21,
-        "위험": "콜레라 대유행",
-        "통계": "감염 124,418명 / 사망 3,573명 [cite: 3]",
-        "요인": "상하수도 붕괴, 인구 이동, 홍수, 의료 접근 제한 [cite: 3]",
-        "출처": "WHO Sudan cholera update (2026-03-08)"
-    },
-    "DR콩고": {
-        "lat": -4.03, "lon": 21.75,
-        "위험": "다중 전염병 동시 발생",
-        "통계": "유행 45만 건 이상 / 사망 8,700명 이상 [cite: 4]",
-        "요인": "mpox, 홍역, 콜레라, 에볼라, 폴리오 동시 대응 [cite: 4]",
-        "출처": "WHO 2026 긴급호소"
-    },
-    "남수단": {
-        "lat": 6.87, "lon": 31.30,
-        "위험": "역대 최대 규모 콜레라 확산",
-        "통계": "96,000건 이상 / 사망 약 1,600명 [cite: 5]",
-        "요인": "홍수, 국경 유입, 취약 보건체계, m-pox/간염 E 부담 [cite: 5]",
-        "출처": "South Sudan HNRP 2026"
-    },
-    "가자지구": {
-        "lat": 31.35, "lon": 34.30,
-        "위험": "전쟁·기아·감염병 복합 위기",
-        "통계": "사망 63,000+, 부상 161,000+ [cite: 6]",
-        "요인": "오염수, 하수시설 파괴, 극심한 과밀, 낮은 예방접종 [cite: 6]",
-        "출처": "WHO 2025 PHSA"
-    },
-    "아이티": {
-        "lat": 18.97, "lon": -72.28,
-        "위험": "치안붕괴 속 콜레라 재확산",
-        "통계": "갱 폭력 사망 4,864명 / 콜레라 사망 17명 [cite: 7]",
-        "요인": "성폭력, 대규모 인구 이동, 병원 운영 중단, 위생 악화 [cite: 7]",
-        "출처": "UN 2025 / PAHO 2025"
-    }
+# 2. 데이터 구성 [cite: 1, 2]
+data = {
+    "국가": ["수단", "DR콩고", "남수단", "가자지구", "아이티"],
+    "감염_질환건수": [124418, 450000, 96000, 224000, 17], # 가자는 부상+사망 합산 추정치 포함 [cite: 3, 4, 5, 6, 7]
+    "사망자": [3573, 8700, 1600, 63000, 4881], # 아이티는 갱폭력+콜레라 합산 [cite: 3, 4, 5, 6, 7]
+    "위험유형": ["콜레라 대유행", "다중 전염병", "최대 규모 콜레라", "전쟁·기아 복합", "치안·보건 붕괴"],
+    "핵심요인": [
+        "상하수도 붕괴, 인구 이동, 홍수 [cite: 3]",
+        "mpox, 홍역, 에볼라 동시 대응 [cite: 4]",
+        "홍수, 국경 유입, 취약 보건체계 [cite: 5]",
+        "오염수, 하수시설 파괴, 극심한 과밀 [cite: 6]",
+        "갱 폭력, 병원 운영 중단, 위생 악화 [cite: 7]"
+    ],
+    "lat": [12.86, -4.03, 6.87, 31.35, 18.97],
+    "lon": [30.21, 21.75, 31.30, 34.30, -72.28]
 }
+df = pd.DataFrame(data)
 
-# 3. 레이아웃: 지도와 상세 리포트
-col1, col2 = st.columns([2, 1])
+# 3. 메인 대시보드 레이아웃
+row1_col1, row1_col2 = st.columns([1.5, 1])
 
-with col1:
-    st.subheader("🌐 Global High-Risk Map")
-    df = pd.DataFrame([
-        {"Country": k, "Lat": v["lat"], "Lon": v["lon"], "Risk": v["위험"]} 
-        for k, v in msf_data.items()
-    ])
-    
-    # 붉은 점으로 위험 지역 표시 (한글 겹침 방지를 위해 텍스트는 빼고 툴팁에 집중)
-    fig = px.scatter_mapbox(df, lat="Lat", lon="Lon", hover_name="Country", hover_data=["Risk"],
-                            zoom=1, height=600, mapbox_style="carto-darkmatter")
-    fig.update_traces(marker=dict(size=15, color='#ff4b4b'))
-    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, paper_bgcolor="#000")
-    st.plotly_chart(fig, use_container_width=True)
+with row1_col1:
+    st.subheader("🌐 Global Crisis Hotspots (Live Map)")
+    fig_map = px.scatter_mapbox(df, lat="lat", lon="lon", size="사망자", color="사망자",
+                                 hover_name="국가", hover_data=["위험유형", "사망자"],
+                                 color_continuous_scale=px.colors.sequential.Reds,
+                                 zoom=1, height=500, mapbox_style="carto-darkmatter")
+    fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, paper_bgcolor="#000")
+    st.plotly_chart(fig_map, use_container_width=True)
 
-with col2:
-    st.subheader("📄 Field Report Detail")
-    selected_country = st.selectbox("분석 국가 선택", list(msf_data.keys()))
-    
-    data = msf_data[selected_country]
-    st.markdown(f"""
-    <div class="report-box">
-        <h3>📍 {selected_country}</h3>
-        <p><b>위험 상태:</b> {data['위험']}</p>
-        <hr>
-        <p><b>📊 주요 통계:</b><br>{data['통계']}</p>
-        <p><b>⚠️ 핵심 위험요소:</b><br>{data['요인']}</p>
-        <small style="color: #888;">출처: {data['출처']}</small>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if st.button("🚨 긴급 데이터 송출 (NIGHT OWL Protocol)"):
-        with st.spinner("복호화 중..."):
-            time.sleep(1)
-            st.success("데이터 무결성 검증 완료. 보안 송출 성공.")
+with row1_col2:
+    st.subheader("📊 Mortality Comparison (사망자 비교)")
+    fig_bar = px.bar(df, x="국가", y="사망자", color="국가", text_auto='.2s',
+                      title="국가별 보고된 총 사망자 수 (2025-2026)",
+                      color_discrete_sequence=px.colors.qualitative.Pastel)
+    fig_bar.update_layout(showlegend=False, template="plotly_dark", paper_bgcolor="#000")
+    st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown("---")
-st.caption("Data sources: WHO, PAHO, OHCHR, OCHA  | System Securely Maintained by Nina")
+
+row2_col1, row2_col2 = st.columns([1, 1])
+
+with row2_col1:
+    st.subheader("📈 Infection & Disease Cases (질환 규모)")
+    fig_pie = px.pie(df, values='감염_질환건수', names='국가', hole=0.4,
+                      title="지역별 질환/유행 규모 비중",
+                      color_discrete_sequence=px.colors.sequential.RdBu)
+    fig_pie.update_layout(template="plotly_dark", paper_bgcolor="#000")
+    st.plotly_chart(fig_pie, use_container_width=True)
+
+with row2_col2:
+    st.subheader("📑 Focused Intelligence Report")
+    target = st.selectbox("분석 대상 국가 선택", df["국가"].unique())
+    info = df[df["국가"] == target].iloc[0]
+    
+    st.markdown(f"""
+    <div class="report-card">
+        <h2 style='margin-top:0;'>📍 {info['국가']} 분석 리포트</h2>
+        <p class="stat-text"><b>🚨 위기 유형:</b> {info['위험유형']}</p>
+        <p class="stat-text"><b>📉 피해 규모:</b> 사망 {info['사망자']:,}명 / 질환건수 {info['감염_질환건수']:,}건</p>
+        <p class="stat-text"><b>⚠️ 위험 요인:</b> {info['핵심요인']}</p>
+        <hr style='border-color: #444;'>
+        <p style='color: #888; font-size: 14px;'>Data Source: WHO, UN, OCHA based on 2026 intelligence.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("---")
+st.caption("Nina's Tactical Dashboard | MSF Strategic Data Integration | Filtering Noise, Saving Lives.")
