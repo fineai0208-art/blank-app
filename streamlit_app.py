@@ -19,31 +19,36 @@ st.title("🚨 MSF STRATEGIC MONITOR 2026")
 st.write("전염병·위험요소·사망 통계를 함께 본 2025-2026 인도주의 핫스팟 인포그래픽")
 
 # 2. 데이터 고도화 
-# [cite: 3, 4, 5, 6, 7]
 data = {
     "국가": ["수단", "DR콩고", "남수단", "가자지구", "아이티"],
-    "위험_상태": ["콜레라 대유행", "다중 전염병 동시 발생", "사상 최대 콜레라 확산", "전쟁·기아·감염병 중첩", "치안붕괴 속 콜레라 재확산"],
-    "감염_건수": [124418, 450000, 96000, 224000, 17], # [cite: 3, 4, 5, 6, 7]
-    "사망자": [3573, 8700, 1600, 63000, 4881], # [cite: 3, 4, 5, 6, 7]
+    "위험_상태": [
+        "콜레라 대유행 [cite: 3]", 
+        "다중 전염병 동시 발생 [cite: 4]", 
+        "사상 최대 콜레라 확산 [cite: 5]", 
+        "전쟁·기아·감염병 중첩 [cite: 6]", 
+        "치안붕괴 속 콜레라 재확산 [cite: 7]"
+    ],
+    "감염_건수": [124418, 450000, 96000, 224000, 17], # 수단, DR콩고, 남수단, 가자지구(추정), 아이티 
+    "사망자": [3573, 8700, 1600, 63000, 4881], # 수단, DR콩고, 남수단, 가자지구, 아이티(합산) 
     "위험요소": [
-        "상하수도 붕괴, 인구 이동, 홍수, 의료 접근 제한", # [cite: 3]
-        "mpox, 홍역, 콜레라, 에볼라, 폴리오 동시 대응", # [cite: 4]
-        "홍수, 국경 유입, 취약 보건체계, m-pox 부담", # [cite: 5]
-        "오염수, 하수시설 파괴, 극심한 과밀, 낮은 예방접종", # [cite: 6]
-        "갱 폭력, 대규모 인구 이동, 병원 운영 중단, 위생 악화" # [cite: 7]
+        "상하수도 붕괴, 인구 이동, 홍수, 의료 접근 제한 [cite: 3]",
+        "mpox, 홍역, 콜레라, 에볼라, 폴리오 동시 대응 [cite: 4]",
+        "홍수, 국경 유입, 취약 보건체계, m-pox 부담 [cite: 5]",
+        "오염수, 하수시설 파괴, 극심한 과밀, 낮은 예방접종 [cite: 6]",
+        "갱 폭력, 대규모 인구 이동, 병원 운영 중단, 위생 악화 [cite: 7]"
     ],
     "lat": [12.86, -4.03, 6.87, 31.35, 18.97],
     "lon": [30.21, 21.75, 31.30, 34.30, -72.28]
 }
 df = pd.DataFrame(data)
 
-# 3. 최상단 핵심 지표 (Key Metrics)
+# 3. 최상단 핵심 지표
 st.subheader("📌 Global Crisis Summary")
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("총 분석 국가", "5개국")
-m2.metric("최대 피해 지역", "가자지구", "63,000+ 사망") # [cite: 6]
-m3.metric("최다 감염 지역", "DR콩고", "45만 건 이상") # [cite: 4]
-m4.metric("주요 위협", "콜레라(Sudan/Haiti/South Sudan)") # [cite: 3, 5, 7]
+m1.metric("총 분석 국가", "5개국 ")
+m2.metric("최대 사망 보고", "가자지구", "63,000+ [cite: 6]")
+m3.metric("최다 감염 유행", "DR콩고", "45만 건+ [cite: 4]")
+m4.metric("주요 위협", "복합 위기 (Multi-Crisis)")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -64,16 +69,14 @@ with col2:
     tab1, tab2 = st.tabs(["사망자 분포", "질환 규모"])
     
     with tab1:
-        # 사망자 수 비교 막대 그래프
         fig_bar = px.bar(df, x="국가", y="사망자", color="사망자",
-                          text_auto='.2s', color_continuous_scale='Reds')
+                          text_auto='.2s', color_continuous_scale='Reds', title="국가별 보고된 사망자 수 [cite: 3-7]")
         fig_bar.update_layout(template="plotly_dark", paper_bgcolor="#111", plot_bgcolor="#111")
         st.plotly_chart(fig_bar, use_container_width=True)
         
     with tab2:
-        # 감염 건수 비중 파이 차트
         fig_pie = px.pie(df, values='감염_건수', names='국가', hole=0.5,
-                          color_discrete_sequence=px.colors.sequential.YlOrRd_r)
+                          color_discrete_sequence=px.colors.sequential.YlOrRd_r, title="지역별 질환/유행 규모 비중 [cite: 3-7]")
         fig_pie.update_layout(template="plotly_dark", paper_bgcolor="#111")
         st.plotly_chart(fig_pie, use_container_width=True)
 
@@ -93,7 +96,7 @@ st.markdown(f"""
         <div><p style='font-size: 18px; color: #ff4b4b;'><b>🏥 감염/유행 건수</b></p><p style='font-size: 30px;'>{info['감염_건수']:,} 건</p></div>
     </div>
     <p style='font-size: 20px; line-height: 1.8;'><b>⚠️ 핵심 위기 요인:</b><br>{info['위험요소']}</p>
-    <p style='color: #666; font-size: 14px; margin-top: 20px;'>출처: WHO, PAHO, OHCHR, OCHA 및 최신 위기 분석 데이터 기반 [cite: 2]</p>
+    <p style='color: #666; font-size: 14px; margin-top: 20px;'>출처: WHO, PAHO, OHCHR, OCHA 및 최신 위기 분석 데이터 기반 </p>
 </div>
 """, unsafe_allow_html=True)
 
